@@ -6,6 +6,7 @@ Produces separate Part objects for each render target:
   - bell_modifier     : bell-groove volumes around full-run rods
   - rod_joint_modifier: ellipse volumes spanning each joined rod pair
   - sleeve_modifier   : flat box covering female sleeve zone (female sections only)
+  - topopt_modifier   : box volumes covering topology-optimized chordwise patches
 
 With `construction="omega"` the rods sit on the skin and the targets are:
   - part              : main solid with an omega pocket cut for every rod
@@ -27,6 +28,7 @@ from .geometry.shapes import (
     rod_cylinder,
 )
 from .section_layout import SectionInfo, WingDefinition, chord_at, omega_rod_frame
+from .topopt_modifier import build_topopt_modifier, default_patches
 
 
 def _collect_rod_cutters(sec: SectionInfo, wing: WingDefinition) -> list:
@@ -319,7 +321,7 @@ def build_all_omega(sec: SectionInfo, wing: WingDefinition) -> dict:
 # Public API
 # ─────────────────────────────────────────────────────────────
 
-def build_all(sec: SectionInfo, wing: WingDefinition) -> dict:
+def build_all(sec: SectionInfo, wing: WingDefinition, patches=None) -> dict:
     """
     Build all geometry for a section.
     Returns dict keyed by render-target name → Solid or Compound or None.
@@ -329,6 +331,7 @@ def build_all(sec: SectionInfo, wing: WingDefinition) -> dict:
       'bell_modifier'     – bell-groove modifier volumes (primary rods)
       'rod_joint_modifier'– ellipse modifier spanning each joined rod pair
       'sleeve_modifier'   – flat box at female joint zone
+      'topopt_modifier'   – box volumes at topology-optimized chordwise patches
 
     `construction="omega"` returns a different set; see `build_all_omega`.
     """
@@ -357,5 +360,11 @@ def build_all(sec: SectionInfo, wing: WingDefinition) -> dict:
     # ── Sleeve modifier (female only) ──
     sleeve_mods = _build_sleeve_modifier(sec, wing)
     result['sleeve_modifier'] = compound_list(sleeve_mods)
+
+    # ── Topopt modifier ──
+    if patches is None:
+        patches = default_patches()
+    topopt_mods = build_topopt_modifier(sec, wing, patches)
+    result['topopt_modifier'] = compound_list(topopt_mods)
 
     return result

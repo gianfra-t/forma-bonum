@@ -14,8 +14,9 @@ Emits per print section:
     section_NN_bell_modifier.stl
     section_NN_rod_joint_modifier.stl
     section_NN_sleeve_modifier.stl   (female sections only)
+    section_NN_topopt_modifier.stl
 
-The three modifier STLs are PrusaSlicer MODIFIER VOLUMES, not parts -- they raise
+The modifier STLs are PrusaSlicer MODIFIER VOLUMES, not parts -- they raise
 the infill locally around the bores, across each rod-to-rod lap, and in the sleeve
 zone.  Load them as modifiers on the corresponding part, do not print them.
 
@@ -47,6 +48,7 @@ SKIP_MSG = {
     "bell_modifier": "no rods, skipped",
     "rod_joint_modifier": "no rod joint, skipped",
     "sleeve_modifier": "not a female section, skipped",
+    "topopt_modifier": "no topopt patch, skipped",
 }
 
 

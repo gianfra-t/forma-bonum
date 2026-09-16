@@ -34,6 +34,12 @@ from .section_layout import (
     compute_section_layout,
     print_layout,
 )
+from .topopt_modifier import (
+    TopOptPatch,
+    build_topopt_modifier,
+    default_patches,
+    extract_patches_from_density,
+)
 from .wing_builder import build_all
 
 __version__ = "0.1.0"
@@ -54,6 +60,11 @@ __all__ = [
     "PhysicalRodSection",
     # geometry
     "build_all",
+    # topopt
+    "TopOptPatch",
+    "build_topopt_modifier",
+    "default_patches",
+    "extract_patches_from_density",
     # airfoil
     "naca4_polygon_pts",
     "naca4_y_at",
