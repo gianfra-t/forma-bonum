@@ -304,13 +304,14 @@ def build_all_omega(sec: SectionInfo, wing: WingDefinition) -> dict:
     result['part'] = solid
 
     webs = [_chord_box(sec, wing, pct, pct, -t_half, t_half)
-            for pct in (om.front_web_pct, om.rear_web_pct)]
+            for pct in (om.front_web_pct, om.rear_web_pct)] if om.box else []
     walls = fuse_all(clip_walls + webs)
-    result['walls'] = solid.intersect(walls)
+    result['walls'] = solid.intersect(walls) if walls is not None else None
 
-    result['le_cell_modifier'] = _chord_box(sec, wing, 0.0, om.front_web_pct, -2.0, -t_half)
-    result['box_cell_modifier'] = _chord_box(sec, wing, om.front_web_pct, om.rear_web_pct, t_half, -t_half)
-    result['te_cell_modifier'] = _chord_box(sec, wing, om.rear_web_pct, 1.0, t_half, 2.0)
+    if om.box:
+        result['le_cell_modifier'] = _chord_box(sec, wing, 0.0, om.front_web_pct, -2.0, -t_half)
+        result['box_cell_modifier'] = _chord_box(sec, wing, om.front_web_pct, om.rear_web_pct, t_half, -t_half)
+        result['te_cell_modifier'] = _chord_box(sec, wing, om.rear_web_pct, 1.0, t_half, 2.0)
 
     result['rod_joint_modifier'] = compound_list(_build_omega_joint_modifier(sec, wing))
     result['sleeve_modifier'] = compound_list(_build_sleeve_modifier(sec, wing))

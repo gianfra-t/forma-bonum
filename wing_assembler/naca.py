@@ -30,7 +30,16 @@ def naca4_points(digits: str, n: int = 80):
     """
     Return (upper_pts, lower_pts) in chord-fraction coords [0..1].
     upper/lower are numpy arrays of shape (n, 2).
+
+    "rect<NN>" is a flat-sided rectangle, NN % of chord high, centred on the
+    chord line -- a test coupon, not an airfoil.
     """
+    if digits.startswith("rect"):
+        half = float(digits[4:]) / 200.0
+        x = (1 - np.cos(np.linspace(0, np.pi, n))) / 2.0
+        return (np.column_stack([x, np.full(n, half)]),
+                np.column_stack([x, np.full(n, -half)]))
+
     if not (digits.isdigit() and len(digits) == 4):
         import urllib.request
         # Resolve against the package's own airfoils/ dir, not the cwd, so a
@@ -118,8 +127,10 @@ def naca4_polygon_pts(digits: str, chord: float, n: int = 60) -> list:
 
     u = sc(upper)  # LE to TE on top
     l = sc(lower)  # LE to TE on bottom
-    # Closed: upper forward, lower reversed back to LE (skip duplicate LE/TE)
-    poly = u + list(reversed(l[1:-1]))
+    # Closed: upper forward, lower reversed back to LE. An airfoil's upper and
+    # lower meet at LE and TE, so those are duplicates; a rectangle's are its corners.
+    shared = upper[0, 1] == lower[0, 1]
+    poly = u + list(reversed(l[1:-1] if shared else l))
     return poly
 
 

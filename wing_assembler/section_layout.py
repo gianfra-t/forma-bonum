@@ -37,6 +37,7 @@ class OmegaSettings:
     box_le_pct: float = 0.20             # front web, chord fraction from the LE
     box_te_pct: float = 0.30             # rear web, chord fraction from the TE
     box_wall_lines: int = 1
+    box: bool = True                     # False: no webs and no cell modifiers, just the clips
 
     @property
     def skin_wall(self) -> float:
@@ -89,7 +90,7 @@ class WingDefinition:
     def __post_init__(self):
         if self.construction not in ("bore", "omega"):
             raise ValueError(f"construction must be 'bore' or 'omega', got {self.construction!r}")
-        if self.construction == "omega" and not (
+        if self.construction == "omega" and self.omega.box and not (
                 0.0 < self.omega.front_web_pct < self.omega.rear_web_pct < 1.0):
             raise ValueError("omega box webs must satisfy 0 < box_le_pct < 1 - box_te_pct < 1")
 
@@ -334,6 +335,8 @@ def _omega_fits(wing: WingDefinition, pct: float, z0: float, z1: float) -> bool:
 def _omega_web_clearance(wing: WingDefinition, pct: float, z0: float, z1: float) -> dict[str, float]:
     """Clip loop to box web, mm, per web, at the tighter end (negative = crossing)."""
     om = wing.omega
+    if not om.box:
+        return {}
     reach = wing.rod_diameter / 2 + om.omega_clearance + om.omega_wall + om.box_wall / 2
     out = {}
     for name, wp in (("front", om.front_web_pct), ("rear", om.rear_web_pct)):
@@ -350,7 +353,7 @@ def _omega_clear(wing: WingDefinition, pct: float, z0: float, z1: float,
                  others: list[_Placed], webs: bool = True) -> bool:
     if not _omega_fits(wing, pct, z0, z1):
         return False
-    if webs and min(_omega_web_clearance(wing, pct, z0, z1).values()) < 0:
+    if webs and min(_omega_web_clearance(wing, pct, z0, z1).values(), default=0.0) < 0:
         return False
     for o in others:
         oz0, oz1 = max(z0, o.z0), min(z1, o.z1)
@@ -641,10 +644,11 @@ def print_omega_placement(wing: WingDefinition) -> None:
     """Requested vs placed rods, what each was snapped to, and web clearances."""
     om = wing.omega
     phys = _compute_physical_rod_sections(wing)
+    webs = (f"webs {om.box_wall:.2f} mm at x/c {om.front_web_pct:.2f} / {om.rear_web_pct:.2f}"
+            if om.box else "no box")
     print(f"Omega construction: skin {om.skin_wall:.2f} mm (rod bears at "
           f"{omega_skin_offset(wing):.2f}), clip {om.omega_wall:.2f} mm, "
-          f"webs {om.box_wall:.2f} mm at x/c {om.front_web_pct:.2f} / {om.rear_web_pct:.2f}, "
-          f"min rod gap {om.rod_min_gap:.2f} mm")
+          f"{webs}, min rod gap {om.rod_min_gap:.2f} mm")
     for psec in phys:
         print(f"  span {psec.r}  z {psec.z_bounds_start:5.1f}->{psec.z_bounds_end:5.1f}")
         prev = phys[psec.r - 1] if psec.r > 0 else None
