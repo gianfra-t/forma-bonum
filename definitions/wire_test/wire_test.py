@@ -1,37 +1,50 @@
+import math
+import sys
+from pathlib import Path
 
-from wing_assembler import WingDefinition, RodSection, OmegaSettings
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent / "rod_test"))
+
+from rod_test import FLAT, LENGTH, LINE, WIDTH, bar, height
+
+from channel_cutter import (Channel, channel_gap, circle, cut_channels, export, modifiers,
+                            regular_polygon, skin_clearance)
+
+LAYER = 0.2
+SKIN = 2 * LINE - LAYER * (1 - math.pi / 4)
+SIZES = (1.0, 1.05, 1.1, 1.15, 1.2, 1.25)
+
+OUT = HERE / "output"
 
 
-SPAN = 290.0
-CHORD = 50.0
+def edge(inscribed):
+    return inscribed / 2 + SKIN
 
-wing = WingDefinition(
-    span=SPAN,
-    root_chord=CHORD,
-    tip_chord=CHORD,
-    naca="rect50",                     # 50 x 25 mm rectangle
-    rod_length=SPAN,                   # one rod span, the full coupon
-    rod_multiple=1,
-    rod_overlap_pct=0.0,               # no lap
-    rod_diameter=2.2,                  # omega tube orifice
-    skin_distance=2.0,                 # unused by omega
-    joint_length=15.0,                 # unused: single section, no joints
-    joint_thickness=0.45,              # still sets how deep the rod bears (max with the skin)
-    clearance=0.0,
-    epoxy_gap=0.3,
-    axial_gap=0.3,
-    rod_sections=[
-        RodSection(chord_pcts=[0.25, 0.75]),   # 2 upper + 2 lower rods
-    ],
-    construction="omega",
-    omega=OmegaSettings(
-        line_width=0.42,
-        skin_lines=1,
-        omega_lines=1,
-        omega_clearance=0.0,
-        omega_neck_width=None,
-        omega_foot_length=1.0,
-        rod_min_gap=0.5,
-        box=False,                     # no webs, no cell modifiers
-    ),
-)
+
+def build(inscribed):
+    e = edge(inscribed)
+    wire, mod = regular_polygon(3, inscribed), circle(2 * (e - 0.2))
+    xs = (e, height() - e)
+    channels = [Channel(wire, [(x, 0, -1), (x, 0, LENGTH + 1)], mod, (side, 0, 0), f"wire_{i}")
+                for i, (x, side) in enumerate(zip(xs, (1, -1)), 1)]
+    return bar(), channels
+
+
+def report(part, channels):
+    print(f"  section {height():.3f} x {WIDTH + FLAT} mm ({FLAT} flat), {LENGTH} long; layer {LAYER}, skin {SKIN:.3f}")
+    for c in channels:
+        gaps = [channel_gap(c, d) for d in channels if d is not c]
+        print(f"  {c.name:10s} x {c.points[0][0]:6.3f}  wall {skin_clearance(part, c):6.3f}  gap {min(gaps):6.3f}")
+
+
+if __name__ == "__main__":
+    for size in SIZES:
+        part, channels = build(size)
+        name = f"wire_test_{size:.2f}"
+        print(f"{name}: inscribed {size}, centre to wall {edge(size):.3f}")
+        report(part, channels)
+        cut = cut_channels(part, channels)
+        export(cut, OUT / f"{name}.step")
+        export(cut, OUT / f"{name}.stl")
+        export(modifiers(part, channels), OUT / f"{name}_modifier.stl")
+    print(f"wrote {OUT}")

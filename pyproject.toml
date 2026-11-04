@@ -18,7 +18,7 @@ dependencies = [
 wing-assembler = "wing_assembler.generate:main"
 
 [tool.setuptools]
-packages = ["wing_assembler", "wing_assembler.geometry"]
+packages = ["wing_assembler", "wing_assembler.geometry", "channel_cutter"]
 
 [tool.setuptools.package-data]
 wing_assembler = ["airfoils/*.dat"]
